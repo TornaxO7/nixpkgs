@@ -835,20 +835,6 @@ in
             };
           };
         };
-
-        tmpfiles.rules =
-          let
-            cfgp = cfg.settings.general.config_paths;
-          in map (path: "d ${path} 0750 crowdsec crowdsec -") [
-            cfgp.data_dir
-            cfgp.hub_dir
-            cfgp.notification_dir
-            cfgp.plugin_dir
-            cfg.settings.general.crowdsec_service.acquisition_dir
-            cfgp.config_dir
-            "${cfgp.config_dir}/parsers"
-            "${cfgp.config_dir}/scenarios"
-          ];
       };
 
       users.users.${cfg.user} = {
