@@ -425,7 +425,7 @@ in
       ++ lib.optional cfg.settings.general.api.server.enable ''
         if [ ! -f ${cfg.settings.general.api.client.credentials_path} ]; then
           echo "No local API credentials currently created. Generating local API credentials..."
-          ${lib.getExe cscli} machines add nixos-generated --auto --file ${cfg.settings.general.api.client.credentials_path}
+          ${lib.getExe cscli} machines add "${cfg.name}" --auto --file ${cfg.settings.general.api.client.credentials_path}
         fi
       ''
       ++
@@ -527,7 +527,7 @@ in
       services.crowdsec.settings.general = rec {
         common = {
           daemonize = false;
-          log_media = "stdout";
+          log_media = lib.mkOptionDefault "stdout";
         };
         config_paths = {
           config_dir = "/etc/crowdsec";
@@ -547,48 +547,48 @@ in
             ];
           };
         };
-        crowdsec_service = lib.mkDefault {
-          enable = lib.mkDefault true;
-          acquisition_path = "${config_paths.config_dir}/acquis.yaml";
-          acquisition_dir = "${config_paths.config_dir}/acquis.d";
-          parser_routines = lib.mkDefault 1;
+        crowdsec_service = lib.mkOptionDefault {
+          enable = lib.mkOptionDefault true;
+          acquisition_path = lib.mkOptionDefault "${config_paths.config_dir}/acquis.yaml";
+          acquisition_dir = lib.mkOptionDefault "${config_paths.config_dir}/acquis.d";
+          parser_routines = lib.mkOptionDefault 1;
         };
-        db_config = lib.mkDefault {
-          type = lib.mkDefault "sqlite";
-          db_path = lib.mkDefault "${config_paths.data_dir}/crowdsec.db";
-          use_wal = lib.mkDefault true;
+        db_config = lib.mkOptionDefault {
+          type = lib.mkOptionDefault "sqlite";
+          db_path = lib.mkOptionDefault "${config_paths.data_dir}/crowdsec.db";
+          use_wal = lib.mkOptionDefault true;
         };
-        plugin_config = lib.mkDefault {
-          user = lib.mkDefault "nobody";
-          group = lib.mkDefault "nogroup";
+        plugin_config = lib.mkOptionDefault {
+          user = lib.mkOptionDefault "nobody";
+          group = lib.mkOptionDefault "nogroup";
         };
         api = {
           client = {
-            insecure_skip_verify = lib.mkDefault false;
-            credentials_path = lib.mkDefault "${config_paths.data_dir}/local_api_credentials.yaml";
+            insecure_skip_verify = lib.mkOptionDefault false;
+            credentials_path = lib.mkOptionDefault "${config_paths.data_dir}/local_api_credentials.yaml";
           };
           server = {
-            enable = lib.mkDefault true;
-            listen_uri = lib.mkDefault "127.0.0.1:8080";
+            enable = lib.mkOptionDefault true;
+            listen_uri = lib.mkOptionDefault "127.0.0.1:8080";
 
-            profiles_path = "${config_paths.config_dir}/profiles.yaml";
-            console_path = "${config_paths.data_dir}/console.yaml";
+            profiles_path = lib.mkOptionDefault "${config_paths.config_dir}/profiles.yaml";
+            console_path = lib.mkOptionDefault "${config_paths.data_dir}/console.yaml";
 
-            online_client = lib.mkDefault {
-              sharing = lib.mkDefault true;
-              pull = lib.mkDefault {
-                community = lib.mkDefault true;
-                blocklists = lib.mkDefault true;
+            online_client = lib.mkOptionDefault {
+              sharing = lib.mkOptionDefault true;
+              pull = lib.mkOptionDefault {
+                community = lib.mkOptionDefault true;
+                blocklists = lib.mkOptionDefault true;
               };
-              credentials_path = lib.mkDefault null;
+              credentials_path = lib.mkOptionDefault null;
             };
           };
         };
         prometheus = {
-          enabled = lib.mkDefault true;
-          level = lib.mkDefault "full";
-          listen_addr = lib.mkDefault "127.0.0.1";
-          listen_port = lib.mkDefault 6060;
+          enabled = lib.mkOptionDefault true;
+          level = lib.mkOptionDefault "full";
+          listen_addr = lib.mkOptionDefault "127.0.0.1";
+          listen_port = lib.mkOptionDefault 6060;
         };
         cscli = {
           hub_branch = cfg.hub.branch;
@@ -744,7 +744,7 @@ in
               StateDirectory = "crowdsec";
               StateDirectoryMode = "0750";
               ConfigurationDirectory = "crowdsec";
-              ConfigurationDirectoryMode = "0755";
+              ConfigurationDirectoryMode = "0750";
 
               ExecStart = "${lib.getExe cscli} --error hub update";
               ExecStartPost = "systemctl reload crowdsec.service";
@@ -816,7 +816,7 @@ in
               StateDirectory = "crowdsec crowdsec/hub";
               StateDirectoryMode = "0750";
               ConfigurationDirectory = "crowdsec crowdsec/acquis.d";
-              ConfigurationDirectoryMode = "0755";
+              ConfigurationDirectoryMode = "0750";
 
               ExecReload = [
                 " " # This is needed to clear the ExecReload definitions from upstream
@@ -835,6 +835,20 @@ in
             };
           };
         };
+
+        tmpfiles.rules =
+          let
+            cfgp = cfg.settings.general.config_paths;
+          in map (path: "d ${path} 0750 crowdsec crowdsec -") [
+            cfgp.data_dir
+            cfgp.hub_dir
+            cfgp.notification_dir
+            cfgp.plugin_dir
+            cfg.settings.general.crowdsec_service.acquisition_dir
+            cfgp.config_dir
+            "${cfgp.config_dir}/parsers"
+            "${cfgp.config_dir}/scenarios"
+          ];
       };
 
       users.users.${cfg.user} = {
@@ -845,7 +859,7 @@ in
         extraGroups = [ "systemd-journal" ];
       };
 
-      users.groups.${cfg.group} = lib.mapAttrs (name: lib.mkDefault) { };
+      users.groups.${cfg.group} = lib.mapAttrs (name: lib.mkOptionDefault) { };
 
       networking.firewall.allowedTCPPorts =
         let
