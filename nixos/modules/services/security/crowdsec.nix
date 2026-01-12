@@ -504,7 +504,20 @@ in
         if [ -e "${cfg.settings.console.tokenFile}" ]; then
           ${lib.getExe cscli} console enroll "$(cat ${cfg.settings.console.tokenFile})" --name ${cfg.name}
         fi
-      '';
+      ''
+      ++ [
+        ''
+          mkdir -p ${cfg.settings.general.config_paths.data_dir}/plugins
+          cp -f ${cfg.package}/libexec/crowdsec/plugins/notification-dummy ${cfg.settings.general.config_paths.data_dir}/plugins/notification-dummy
+          cp -f ${cfg.package}/libexec/crowdsec/plugins/notification-email ${cfg.settings.general.config_paths.data_dir}/plugins/notification-email
+          cp -f ${cfg.package}/libexec/crowdsec/plugins/notification-file ${cfg.settings.general.config_paths.data_dir}/plugins/notification-file
+          cp -f ${cfg.package}/libexec/crowdsec/plugins/notification-http ${cfg.settings.general.config_paths.data_dir}/plugins/notification-http
+          cp -f ${cfg.package}/libexec/crowdsec/plugins/notification-sentinel ${cfg.settings.general.config_paths.data_dir}/plugins/notification-sentinel
+          cp -f ${cfg.package}/libexec/crowdsec/plugins/notification-slack ${cfg.settings.general.config_paths.data_dir}/plugins/notification-slack
+          cp -f ${cfg.package}/libexec/crowdsec/plugins/notification-splunk ${cfg.settings.general.config_paths.data_dir}/plugins/notification-splunk
+          chmod 0750 -R ${cfg.settings.general.config_paths.data_dir}/plugins
+        ''
+      ];
 
       setupScript = pkgs.writeShellApplication {
         name = "crowdsec-setup";
@@ -577,7 +590,7 @@ in
           hub_dir = "${config_paths.data_dir}/hub";
           index_path = "${config_paths.hub_dir}/.index.json";
           notification_dir = "${config_paths.config_dir}/notifications";
-          plugin_dir = "${config_paths.config_dir}/plugins";
+          plugin_dir = "${config_paths.data_dir}/plugins";
 
           simulation_path = yaml.generate "simulation.yaml" cfg.settings.simulation;
 
@@ -601,8 +614,8 @@ in
           use_wal = lib.mkOptionDefault true;
         };
         plugin_config = lib.mkOptionDefault {
-          user = lib.mkOptionDefault "nobody";
-          group = lib.mkOptionDefault "nogroup";
+          user = lib.mkOptionDefault cfg.user;
+          group = lib.mkOptionDefault cfg.group;
         };
         api = {
           client = {
