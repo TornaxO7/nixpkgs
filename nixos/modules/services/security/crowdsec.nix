@@ -575,7 +575,7 @@ in
             in
             !usesHub || (usesHub && onlineApiCredentialsAreSet);
 
-          message = "`config.services.crowdsec.settings.general.api.server.online_client.credentials_path` needs to set.";
+          message = "`config.services.crowdsec.settings.general.api.server.online_client.credentials_path` needs to be set.";
         }
       ];
 
