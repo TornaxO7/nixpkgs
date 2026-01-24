@@ -90,8 +90,8 @@ in
               type = types.str;
               description = "URL of the local API.";
               example = "http://127.0.0.1:8080";
-              default = "http://${config.services.crowdsec.settings.general.api.server.listen_uri}";
-              defaultText = lib.literalExpression ''http://$\{config.services.crowdsec.settings.general.api.server.listen_uri}'';
+              default = "http://${config.services.crowdsec.settings.config.api.server.listen_uri}";
+              defaultText = lib.literalExpression ''http://$\{config.services.crowdsec.settings.config.api.server.listen_uri}'';
             };
             api_key = mkOption {
               type = types.nullOr types.str;
