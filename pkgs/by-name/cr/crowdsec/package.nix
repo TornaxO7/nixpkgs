@@ -23,6 +23,13 @@ buildGoModule (finalAttrs: {
   subPackages = [
     "cmd/crowdsec"
     "cmd/crowdsec-cli"
+    "cmd/notification-dummy"
+    "cmd/notification-email"
+    "cmd/notification-file"
+    "cmd/notification-http"
+    "cmd/notification-sentinel"
+    "cmd/notification-slack"
+    "cmd/notification-splunk"
   ];
 
   ldflags = [
@@ -42,9 +49,13 @@ buildGoModule (finalAttrs: {
     mkdir -p $out/share/crowdsec
     cp -r ./config $out/share/crowdsec/
 
-    mkdir -p $out/lib/systemd/system
-    substitute ./config/crowdsec.service $out/lib/systemd/system/crowdsec.service \
-      --replace-fail /usr/local $out
+    install -D $out/bin/notification-dummy $out/libexec/crowdsec/plugins/
+    install -D $out/bin/notification-email $out/libexec/crowdsec/plugins/
+    install -D $out/bin/notification-file $out/libexec/crowdsec/plugins/
+    install -D $out/bin/notification-http $out/libexec/crowdsec/plugins/
+    install -D $out/bin/notification-sentinel $out/libexec/crowdsec/plugins/
+    install -D $out/bin/notification-slack $out/libexec/crowdsec/plugins/
+    install -D $out/bin/notification-splunk $out/libexec/crowdsec/plugins/
 
     installShellCompletion --cmd cscli \
       --bash <($out/bin/cscli completion bash) \
