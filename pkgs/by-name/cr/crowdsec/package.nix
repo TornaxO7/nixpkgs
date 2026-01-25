@@ -49,6 +49,7 @@ buildGoModule (finalAttrs: {
     mkdir -p $out/share/crowdsec
     cp -r ./config $out/share/crowdsec/
 
+    mkdir -p $out/libexec/crowdsec/plugins/
     install -D $out/bin/notification-dummy $out/libexec/crowdsec/plugins/
     install -D $out/bin/notification-email $out/libexec/crowdsec/plugins/
     install -D $out/bin/notification-file $out/libexec/crowdsec/plugins/
