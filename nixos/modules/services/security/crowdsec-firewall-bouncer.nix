@@ -90,8 +90,8 @@ in
               type = types.str;
               description = "URL of the local API.";
               example = "http://127.0.0.1:8080";
-              default = "http://${config.services.crowdsec.settings.general.api.server.listen_uri}";
-              defaultText = lib.literalExpression ''http://$\{config.services.crowdsec.settings.general.api.server.listen_uri}'';
+              default = "http://${config.services.crowdsec.settings.config.api.server.listen_uri}";
+              defaultText = lib.literalExpression ''http://$\{config.services.crowdsec.settings.config.api.server.listen_uri}'';
             };
             api_key = mkOption {
               type = types.nullOr types.str;
@@ -231,7 +231,7 @@ in
           after = [ "crowdsec.service" ];
           wants = after;
           script = ''
-            cscli=/run/current-system/sw/bin/cscli
+            cscli=${lib.getExe config.services.crowdsec.configuredCscli}
             if $cscli bouncers list --output json | ${lib.getExe pkgs.jq} -e -- ${lib.escapeShellArg "any(.[]; .name == \"${cfg.registerBouncer.bouncerName}\")"} >/dev/null; then
               # Bouncer already registered. Verify the API key is still present
               if [ ! -f ${apiKeyFile} ]; then
@@ -257,12 +257,8 @@ in
             User = config.services.crowdsec.user;
             Group = config.services.crowdsec.group;
 
-            StateDirectory = "crowdsec-firewall-bouncer-register";
-
-            ReadWritePaths = [
-              # Needs write permissions to add the bouncer
-              "/var/lib/crowdsec"
-            ];
+            StateDirectory = "crowdsec-firewall-bouncer-register crowdsec";
+            StateDirectoryMode = "0750";
 
             DynamicUser = true;
             LockPersonality = true;
@@ -288,6 +284,7 @@ in
               "~@resources"
             ];
             UMask = "0077";
+            ExecStartPost = "+systemctl try-restart crowdsec-firewall-bouncer.service";
           };
         };
 
@@ -344,8 +341,15 @@ in
                 else
                   null;
 
+              # Run as crowdsec user to be able to use cscli
+              User = config.services.crowdsec.user;
+              Group = config.services.crowdsec.group;
+
               DynamicUser = true;
               RuntimeDirectory = runtime-dir-name;
+
+              StateDirectory = "crowdsec-firewall-bouncer-register crowdsec";
+              StateDirectoryMode = "0750";
 
               LockPersonality = true;
               PrivateDevices = true;
