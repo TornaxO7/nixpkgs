@@ -12,6 +12,7 @@ let
     ${lib.getExe' cfg.package "cscli"} -c="${cfg.settings.config.config_paths.config_dir}/config.yaml" -c="${cfg.settings.config.config_paths.config_dir}/config.yaml.local" "$@"
   '';
 
+  config_paths = cfg.settings.config.config_paths;
 in
 {
   imports = [
@@ -167,192 +168,188 @@ in
             '';
             type = lib.types.submodule {
               freeformType = yaml.type;
-              options =
-                let
-                  config_paths = cfg.settings.config.config_paths;
-                in
-                {
-                  common = {
-                    log_media = lib.mkOption {
-                      type = lib.types.enum [
-                        "stdout"
-                        "file"
-                      ];
-                      default = "stdout";
-                      description = "Log media";
-                    };
+              options = {
+                common = {
+                  log_media = lib.mkOption {
+                    type = lib.types.enum [
+                      "stdout"
+                      "file"
+                    ];
+                    default = "stdout";
+                    description = "Log media";
+                  };
+                };
+
+                config_paths = {
+                  config_dir = lib.mkOption {
+                    type = lib.types.path;
+                    default = "/etc/crowdsec";
+                    description = "Main configuration directory of crowdsec.";
                   };
 
-                  config_paths = {
-                    config_dir = lib.mkOption {
-                      type = lib.types.path;
-                      default = "/etc/crowdsec";
-                      description = "Main configuration directory of crowdsec.";
-                    };
-
-                    data_dir = lib.mkOption {
-                      type = lib.types.path;
-                      default = "/var/lib/crowdsec";
-                      description = "This is where crowdsec is going to store data, such as files downloaded by scenarios, geolocalisation database, metabase configuration database, or even SQLite database.";
-                    };
-
-                    hub_dir = lib.mkOption {
-                      type = lib.types.path;
-                      default = "${config_paths.data_dir}/hub";
-                      defaultText = lib.literalExpression "\${config.services.crowdsec.settings.config.config_paths.data_dir}/hub";
-                      description = "Directory where `cscli` will store parsers, scenarios, collections and such.";
-                    };
-
-                    index_path = lib.mkOption {
-                      type = lib.types.path;
-                      default = "${config_paths.hub_dir}/.index.json";
-                      defaultText = lib.literalExpression "\${config.services.crowdsec.settings.config.config_paths.hub_dir}/.index.json";
-                      description = "Path to the `.index.json` file downloaded by `cscli` to know the list of available configurations.";
-                    };
-
-                    plugin_dir = lib.mkOption {
-                      type = lib.types.path;
-                      default = "${config_paths.data_dir}/plugins";
-                      defaultText = lib.literalExpression "\${config.services.crowdsec.settings.config.config_paths.data_dir}/plugins";
-                      description = "Path to directory where the plugin binaries/scripts are located.";
-                    };
-
-                    notification_dir = lib.mkOption {
-                      type = lib.types.path;
-                      default = "${config_paths.config_dir}/notifications";
-                      defaultText = lib.literalExpression "\${config.services.crowdsec.settings.config.config_dir}/notifications";
-                      description = "Path to directory where configuration files for notification plugins are kept.";
-                    };
-
-                    simulation_path = lib.mkOption {
-                      type = lib.types.path;
-                      default = yaml.generate "simulation.yaml" cfg.settings.simulation;
-                      defaultText = "Path to the nixos generated file.";
-                      description = ''
-                        NOTE: This file is generated from `config.services.crowdsec.settings.simulation`.
-                        If you change this path then `config.services.crowdsec.settings.simulation` will be ignored so you have to
-                        write the content this file on your own.
-                      '';
-                    };
-
-                    pattern_dir = lib.mkOption {
-                      type = lib.types.path;
-                      default = pkgs.buildPackages.symlinkJoin {
-                        name = "crowdsec-patterns";
-                        paths = [
-                          cfg.settings.patterns
-                          "${lib.attrsets.getOutput "out" cfg.package}/share/crowdsec/config/patterns/"
-                        ];
-                      };
-                      defaultText = ''
-                        A directory which contains the patterns of `config.services.crowdsec.settings.patterns` and the patterns
-                        from this directory: <https://github.com/crowdsecurity/crowdsec/tree/master/config/patterns>.
-                      '';
-                      description = "Path to directory where pattern files are located.";
-                    };
+                  data_dir = lib.mkOption {
+                    type = lib.types.path;
+                    default = "/var/lib/crowdsec";
+                    description = "This is where crowdsec is going to store data, such as files downloaded by scenarios, geolocalisation database, metabase configuration database, or even SQLite database.";
                   };
 
-                  db_config = {
-                    db_path = lib.mkOption {
-                      type = lib.types.path;
-                      default = "${config_paths.data_dir}/crowdsec.db";
-                      defaultText = lib.literalExpression "\${config.services.crowdsec.settings.config.config_paths.data_dir}/crowdsec.db";
-                      description = "The path to the database file (only if the type of database is `sqlite`) or path to socket file (only if the type of database is `mysql|pgx`)";
-                    };
-                    type = lib.mkOption {
-                      type = lib.types.str;
-                      default = "sqlite";
-                      description = "The database type";
-                    };
+                  hub_dir = lib.mkOption {
+                    type = lib.types.path;
+                    default = "${config_paths.data_dir}/hub";
+                    defaultText = lib.literalExpression "\${config.services.crowdsec.settings.config.config_paths.data_dir}/hub";
+                    description = "Directory where `cscli` will store parsers, scenarios, collections and such.";
                   };
 
-                  crowdsec_service = {
-                    acquisition_dir = lib.mkOption {
-                      type = lib.types.path;
-                      default = "${config_paths.config_dir}/acquis.d";
-                      defaultText = lib.literalExpression "\${config.services.crowdsec.settings.config.config_paths.config_dir}/acquis.d";
-                      description = ''
-                        Path to a directory where each yaml is considered as a acquisition configuration file containing logs that needs to be read.
-                        If both acquisition_dir and acquisition_path are specified, the entries are merged altogether.
-                      '';
-                    };
+                  index_path = lib.mkOption {
+                    type = lib.types.path;
+                    default = "${config_paths.hub_dir}/.index.json";
+                    defaultText = lib.literalExpression "\${config.services.crowdsec.settings.config.config_paths.hub_dir}/.index.json";
+                    description = "Path to the `.index.json` file downloaded by `cscli` to know the list of available configurations.";
                   };
 
-                  plugin_config = {
-                    user = lib.mkOption {
-                      type = lib.types.str;
-                      description = "The user to run crowdsec plugins as";
-                      default = "crowdsec";
-                    };
-
-                    group = lib.mkOption {
-                      type = lib.types.str;
-                      description = "The group to run crowdsec plugins as";
-                      default = "crowdsec";
-                    };
+                  plugin_dir = lib.mkOption {
+                    type = lib.types.path;
+                    default = "${config_paths.data_dir}/plugins";
+                    defaultText = lib.literalExpression "\${config.services.crowdsec.settings.config.config_paths.data_dir}/plugins";
+                    description = "Path to directory where the plugin binaries/scripts are located.";
                   };
 
-                  api = {
-                    client.credentials_path = lib.mkOption {
-                      type = lib.types.path;
-                      default = "${config_paths.data_dir}/local_api_credentials.yaml";
-                      defaultText = lib.literalExpression "\${config.services.crowdsec.settings.config.config_paths.data_dir}/local_api_credentials.yaml";
-                      description = "Path to the credential files (contains API url + login/password).";
-                    };
-
-                    server = {
-                      enable = lib.mkOption {
-                        type = lib.types.bool;
-                        default = true;
-                        description = "Enable or disable the CrowdSec Local API (`true` by default).";
-                      };
-
-                      listen_uri = lib.mkOption {
-                        type = lib.types.nonEmptyStr;
-                        default = "127.0.0.1:8080";
-                        description = "Address and port listen configuration, the form `host:port`.";
-                      };
-
-                      console_path = lib.mkOption {
-                        type = lib.types.path;
-                        default = "${config_paths.data_dir}/console.yaml";
-                        defaultText = lib.literalExpression "\${config.services.crowdsec.settings.config.config_paths.data_dir}/console.yaml";
-                        description = "The path to the console configuration.";
-                      };
-
-                      profiles_path = lib.mkOption {
-                        type = lib.types.path;
-                        default = "${config_paths.config_dir}/profiles.yaml";
-                        defaultText = lib.literalExpression "\${config.services.crowdsec.settings.config.config_paths.config_dir}/profiles.yaml";
-                        description = "Path to the profiles file.";
-                      };
-
-                      online_client.credentials_path = lib.mkOption {
-                        type = lib.types.nullOr lib.types.path;
-                        default = null;
-                        description = "Path to a file containing credentials for the Central API.";
-                      };
-                    };
+                  notification_dir = lib.mkOption {
+                    type = lib.types.path;
+                    default = "${config_paths.config_dir}/notifications";
+                    defaultText = lib.literalExpression "\${config.services.crowdsec.settings.config.config_dir}/notifications";
+                    description = "Path to directory where configuration files for notification plugins are kept.";
                   };
 
-                  cscli.hub_branch = lib.mkOption {
-                    type = lib.types.nonEmptyStr;
-                    default = "master";
+                  simulation_path = lib.mkOption {
+                    type = lib.types.path;
+                    default = yaml.generate "simulation.yaml" cfg.settings.simulation;
+                    defaultText = "Path to the nixos generated file.";
                     description = ''
-                      The git branch on which cscli is going to fetch configurations.
-
-                      See <https://docs.crowdsec.net/docs/configuration/crowdsec_configuration/#hub_branch> for more information.
+                      NOTE: This file is generated from `config.services.crowdsec.settings.simulation`.
+                      If you change this path then `config.services.crowdsec.settings.simulation` will be ignored so you have to
+                      write the content this file on your own.
                     '';
                   };
 
-                  prometheus = {
-                    listen_port = lib.mkOption {
-                      type = lib.types.port;
-                      default = 6060;
-                      description = "Prometheus listen port.";
+                  pattern_dir = lib.mkOption {
+                    type = lib.types.path;
+                    default = pkgs.buildPackages.symlinkJoin {
+                      name = "crowdsec-patterns";
+                      paths = [
+                        cfg.settings.patterns
+                        "${lib.attrsets.getOutput "out" cfg.package}/share/crowdsec/config/patterns/"
+                      ];
+                    };
+                    defaultText = ''
+                      A directory which contains the patterns of `config.services.crowdsec.settings.patterns` and the patterns
+                      from this directory: <https://github.com/crowdsecurity/crowdsec/tree/master/config/patterns>.
+                    '';
+                    description = "Path to directory where pattern files are located.";
+                  };
+                };
+
+                db_config = {
+                  db_path = lib.mkOption {
+                    type = lib.types.path;
+                    default = "${config_paths.data_dir}/crowdsec.db";
+                    defaultText = lib.literalExpression "\${config.services.crowdsec.settings.config.config_paths.data_dir}/crowdsec.db";
+                    description = "The path to the database file (only if the type of database is `sqlite`) or path to socket file (only if the type of database is `mysql|pgx`)";
+                  };
+                  type = lib.mkOption {
+                    type = lib.types.str;
+                    default = "sqlite";
+                    description = "The database type";
+                  };
+                };
+
+                crowdsec_service = {
+                  acquisition_dir = lib.mkOption {
+                    type = lib.types.path;
+                    default = "${config_paths.config_dir}/acquis.d";
+                    defaultText = lib.literalExpression "\${config.services.crowdsec.settings.config.config_paths.config_dir}/acquis.d";
+                    description = ''
+                      Path to a directory where each yaml is considered as a acquisition configuration file containing logs that needs to be read.
+                      If both acquisition_dir and acquisition_path are specified, the entries are merged altogether.
+                    '';
+                  };
+                };
+
+                plugin_config = {
+                  user = lib.mkOption {
+                    type = lib.types.str;
+                    description = "The user to run crowdsec plugins as";
+                    default = "crowdsec";
+                  };
+
+                  group = lib.mkOption {
+                    type = lib.types.str;
+                    description = "The group to run crowdsec plugins as";
+                    default = "crowdsec";
+                  };
+                };
+
+                api = {
+                  client.credentials_path = lib.mkOption {
+                    type = lib.types.path;
+                    default = "${config_paths.data_dir}/local_api_credentials.yaml";
+                    defaultText = lib.literalExpression "\${config.services.crowdsec.settings.config.config_paths.data_dir}/local_api_credentials.yaml";
+                    description = "Path to the credential files (contains API url + login/password).";
+                  };
+
+                  server = {
+                    enable = lib.mkOption {
+                      type = lib.types.bool;
+                      default = true;
+                      description = "Enable or disable the CrowdSec Local API (`true` by default).";
+                    };
+
+                    listen_uri = lib.mkOption {
+                      type = lib.types.nonEmptyStr;
+                      default = "127.0.0.1:8080";
+                      description = "Address and port listen configuration, the form `host:port`.";
+                    };
+
+                    console_path = lib.mkOption {
+                      type = lib.types.path;
+                      default = "${config_paths.data_dir}/console.yaml";
+                      defaultText = lib.literalExpression "\${config.services.crowdsec.settings.config.config_paths.data_dir}/console.yaml";
+                      description = "The path to the console configuration.";
+                    };
+
+                    profiles_path = lib.mkOption {
+                      type = lib.types.path;
+                      default = "${config_paths.config_dir}/profiles.yaml";
+                      defaultText = lib.literalExpression "\${config.services.crowdsec.settings.config.config_paths.config_dir}/profiles.yaml";
+                      description = "Path to the profiles file.";
+                    };
+
+                    online_client.credentials_path = lib.mkOption {
+                      type = lib.types.nullOr lib.types.path;
+                      default = null;
+                      description = "Path to a file containing credentials for the Central API.";
                     };
                   };
                 };
+
+                cscli.hub_branch = lib.mkOption {
+                  type = lib.types.nonEmptyStr;
+                  default = "master";
+                  description = ''
+                    The git branch on which cscli is going to fetch configurations.
+
+                    See <https://docs.crowdsec.net/docs/configuration/crowdsec_configuration/#hub_branch> for more information.
+                  '';
+                };
+
+                prometheus = {
+                  listen_port = lib.mkOption {
+                    type = lib.types.port;
+                    default = 6060;
+                    description = "Prometheus listen port.";
+                  };
+                };
+              };
             };
           };
 
@@ -628,6 +625,30 @@ in
 
   config =
     let
+      installDir = d: ''install -d -o ${cfg.user} -g ${cfg.group} -m 750 "${d}"'';
+
+      setupEtc =
+        let
+          etcDirs = [
+            config_paths.config_dir
+            cfg.settings.config.crowdsec_service.acquisition_dir
+            config_paths.notification_dir
+            "${config_paths.config_dir}/appsec-configs"
+            "${config_paths.config_dir}/appsec-rules"
+            "${config_paths.config_dir}/collections"
+            "${config_paths.config_dir}/contexts"
+            "${config_paths.config_dir}/parsers"
+            "${config_paths.config_dir}/parsers/s00-raw"
+            "${config_paths.config_dir}/parsers/s01-parse"
+            "${config_paths.config_dir}/parsers/s02-enrich"
+            "${config_paths.config_dir}/postoverflows"
+            "${config_paths.config_dir}/postoverflows/s00-enrich"
+            "${config_paths.config_dir}/postoverflows/s01-whitelist"
+            "${config_paths.config_dir}/scenarios"
+          ];
+        in
+        lib.concatMapStringsSep "\n" installDir etcDirs;
+
       setupScript = pkgs.writeShellApplication {
         name = "crowdsec-setup";
         runtimeInputs = [ configuredCscli ];
@@ -639,8 +660,6 @@ in
               lib.optionalString (
                 builtins.isList cfg.hub.${x} && cfg.hub.${x} != [ ]
               ) "cscli ${lib.toLower x} install ${argString cfg.hub.${x}}";
-
-            installDir = d: ''install -d -o ${cfg.user} -g ${cfg.group} -m 750 "${d}"'';
 
             installNotificationPlugin = name: ''
               install -o ${cfg.user} -g ${cfg.group} -m 0750 -D ${cfg.package}/libexec/crowdsec/plugins/${name} ${cfg.settings.config.config_paths.data_dir}/plugins/${name}
@@ -758,6 +777,10 @@ in
           message = "`config.services.crowdsec.settings.config.api.server.online_client.credentials_path` needs to be set.";
         }
       ];
+
+      # From our testing, `environment.etc` isn't fast enough so that the permissions aren't correctly set if the service starts.
+      # As a workaround we are creating the required `etc` directories here
+      system.activationScripts.crowdsec = setupEtc;
 
       environment = {
         systemPackages =
@@ -917,18 +940,6 @@ in
             };
           };
 
-          tmpfiles.settings.crowdsec = {
-            # Reason(#1): `environment.etc` is faster than `systemd.services.crowdsec.serviceConfig.ConfigurationDirectoryMode`
-            # and creates the directory with 0755 mode.
-            #
-            # For whatever reason this doesn't really work.
-            # The user needs to execute `sudo systemd-tmpfiles --create` manually after crowdsec has started to fix the permissions...
-            "${cfg.settings.config.config_paths.config_dir}".d = entry_permissions;
-            "${cfg.settings.config.config_paths.config_dir}/parsers".d = entry_permissions;
-            "${cfg.settings.config.crowdsec_service.acquisition_dir}".d = entry_permissions;
-            "${cfg.settings.config.config_paths.notification_dir}".d = entry_permissions;
-          };
-
           services = {
             crowdsec-update-hub = lib.mkIf (cfg.autoUpdateService) {
               description = "Update the crowdsec hub index";
@@ -961,13 +972,6 @@ in
               after = [
                 "network-online.target"
                 "crowdsec-setup.service"
-
-                # See Reason(#1)
-                "systemd-tmpfiles-setup.service"
-                "systemd-tmpfiles-setup-dev-early.service"
-                "systemd-tmpfiles-setup-dev.service"
-                "systemd-tmpfiles-clean.service"
-                "systemd-tmpfiles-clean.timer"
               ];
 
               environment = {
@@ -1026,7 +1030,7 @@ in
 
   meta = {
     maintainers = with lib.maintainers; [
-      M0ustach3
+      m0ustache3
       tornax
       jk
     ];
