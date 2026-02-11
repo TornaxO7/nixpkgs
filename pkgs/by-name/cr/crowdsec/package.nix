@@ -74,6 +74,7 @@ buildGoModule (finalAttrs: {
   '';
 
   meta = {
+    mainProgram = "crowdsec";
     homepage = "https://crowdsec.net/";
     changelog = "https://github.com/crowdsecurity/crowdsec/releases/tag/v${finalAttrs.version}";
     description = "Free, open-source and collaborative IPS";
