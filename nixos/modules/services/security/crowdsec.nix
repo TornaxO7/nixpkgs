@@ -787,7 +787,10 @@ in
       environment = {
         systemPackages =
           let
-            cscliWrapper = pkgs.writeShellScriptBin "cscli" ''
+            cscliWrapper = pkgs.symlinkJoin {
+              name = "cscli";
+              paths = [
+                (pkgs.writeShellScriptBin "cscli" ''
               exec systemd-run \
                 --quiet \
                 --pty \
@@ -804,7 +807,15 @@ in
                 --property=ConfigurationDirectoryMode="0750" \
                 -- \
                 ${lib.getExe configuredCscli} "$@"
-            '';
+                '')
+                (pkgs.runCommand "cscli-completions" { } ''
+                  mkdir -p $out/share
+                  ln -s ${cfg.package}/share/bash-completion $out/share/bash-completion
+                  ln -s ${cfg.package}/share/zsh $out/share/zsh
+                  ln -s ${cfg.package}/share/fish $out/share/fish
+                '')
+              ];
+            };
           in
           [ cscliWrapper ];
 
