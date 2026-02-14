@@ -633,14 +633,22 @@ in
     let
       installDir = d: ''install -d -o ${cfg.user} -g ${cfg.group} -m 750 "${d}"'';
 
-      setupConfigDirs = lib.concatMapStringsSep "\n" installDir [
+      cleanConfigDirs = ''
+        if [ -d ${config_paths.config_dir}/patterns ]; then
+          rm -rf ${config_paths.config_dir}/patterns
+        fi
+      '';
+
+      createConfigDirs = lib.concatMapStringsSep "\n" installDir [
         config_paths.config_dir
         cfg.settings.config.crowdsec_service.acquisition_dir
         config_paths.notification_dir
         "${config_paths.config_dir}/appsec-configs"
         "${config_paths.config_dir}/appsec-rules"
         "${config_paths.config_dir}/collections"
+        "${config_paths.config_dir}/console"
         "${config_paths.config_dir}/contexts"
+        "${config_paths.config_dir}/hub"
         "${config_paths.config_dir}/parsers"
         "${config_paths.config_dir}/parsers/s00-raw"
         "${config_paths.config_dir}/parsers/s01-parse"
@@ -650,6 +658,11 @@ in
         "${config_paths.config_dir}/postoverflows/s01-whitelist"
         "${config_paths.config_dir}/scenarios"
       ];
+
+      setupConfigDirs = ''
+        ${cleanConfigDirs}
+        ${createConfigDirs}
+      '';
 
       setupScript = pkgs.writeShellApplication {
         name = "crowdsec-setup";
@@ -667,20 +680,52 @@ in
               install -o ${cfg.user} -g ${cfg.group} -m 0750 -D ${cfg.package}/libexec/crowdsec/plugins/${name} ${cfg.settings.config.config_paths.data_dir}/plugins/${name}
             '';
 
-            maybeTouchCredPath =
+            maybeTouchFile =
               p:
               lib.optionalString (p != null) ''
                 if [ ! -s ${p} ]; then
                   touch "${p}"
                 fi
               '';
+
+            maybeInstallConfigFile =
+              p: o:
+              lib.optionalString (p != null) ''
+                if [ ! -f ${config_paths.config_dir}/${o} ]; then
+                  cp ${cfg.package}/share/crowdsec/config/${p} ${config_paths.config_dir}/${o}
+                fi
+              '';
+
+            maybeInstallDataFile =
+              p: o:
+              lib.optionalString (p != null) ''
+                if [ ! -f ${cfg.settings.config.config_paths.data_dir}/${o} ]; then
+                  cp ${cfg.package}/share/crowdsec/config/${p} ${cfg.settings.config.config_paths.data_dir}/${o}
+                fi
+              '';
+
+            overwriteInstallConfigDir =
+              p:
+              lib.optionalString (p != null) ''
+                cp -a ${cfg.package}/share/crowdsec/config/${p} ${config_paths.config_dir}
+              '';
           in
           ''
-            ${maybeTouchCredPath cfg.settings.config.api.client.credentials_path}
-            ${maybeTouchCredPath cfg.settings.config.api.server.online_client.credentials_path}
+            ${maybeTouchFile cfg.settings.config.api.client.credentials_path}
+            ${maybeTouchFile cfg.settings.config.api.server.online_client.credentials_path}
 
             ${installDir cfg.settings.config.config_paths.hub_dir}
             ${installDir cfg.settings.config.config_paths.plugin_dir}
+
+            # needed by `cscli setup`
+            ${installDir "${cfg.settings.config.config_paths.hub_dir}/.cache"}
+            ${installDir "${cfg.settings.config.config_paths.data_dir}/data"}
+            ${maybeInstallDataFile "detect.yaml" "data/detect.yaml"}
+
+            ${maybeInstallConfigFile "simulation.yaml" "simulation.yaml"}
+            ${maybeInstallConfigFile "context.yaml" "console/context.yaml"}
+            ${maybeInstallConfigFile "console.yaml" "console.yaml"}
+            ${overwriteInstallConfigDir "patterns"}
 
             echo "Updating hub..."
 
@@ -791,22 +836,22 @@ in
               name = "cscli";
               paths = [
                 (pkgs.writeShellScriptBin "cscli" ''
-              exec systemd-run \
-                --quiet \
-                --pty \
-                --wait \
-                --collect \
-                --pipe \
-                --property=ExecPaths="${cfg.settings.config.config_paths.plugin_dir}" \
-                --property=User=${cfg.user} \
-                --property=Group=${cfg.group} \
-                --property=DynamicUser=true \
-                --property=StateDirectory="crowdsec crowdsec/hub" \
-                --property=StateDirectoryMode="0750" \
-                --property=ConfigurationDirectory="crowdsec crowdsec/acquis.d" \
-                --property=ConfigurationDirectoryMode="0750" \
-                -- \
-                ${lib.getExe configuredCscli} "$@"
+                  exec systemd-run \
+                    --quiet \
+                    --pty \
+                    --wait \
+                    --collect \
+                    --pipe \
+                    --property=ExecPaths="${cfg.settings.config.config_paths.plugin_dir}" \
+                    --property=User=${cfg.user} \
+                    --property=Group=${cfg.group} \
+                    --property=DynamicUser=true \
+                    --property=StateDirectory="crowdsec crowdsec/hub" \
+                    --property=StateDirectoryMode="0750" \
+                    --property=ConfigurationDirectory="crowdsec crowdsec/acquis.d" \
+                    --property=ConfigurationDirectoryMode="0750" \
+                    -- \
+                    ${lib.getExe configuredCscli} "$@"
                 '')
                 (pkgs.runCommand "cscli-completions" { } ''
                   mkdir -p $out/share
