@@ -343,6 +343,12 @@ in
                 };
 
                 prometheus = {
+                  enabled = lib.mkOption {
+                    type = lib.types.bool;
+                    default = true;
+                    description = "Enable or disable the CrowdSec prometheus exporter.";
+                  };
+
                   listen_port = lib.mkOption {
                     type = lib.types.port;
                     default = 6060;
