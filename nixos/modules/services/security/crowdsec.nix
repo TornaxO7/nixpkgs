@@ -327,7 +327,12 @@ in
                     online_client.credentials_path = lib.mkOption {
                       type = lib.types.nullOr lib.types.path;
                       default = null;
-                      description = "Path to a file containing credentials for the Central API.";
+                      example = "${config_paths.data_dir}/online_api_credentials.yaml";
+                      description = ''
+                        Path to a file containing credentials for the Central API.
+                        To automatically register with `crowdsec-setup`, set this option (typically to ${config_paths.data_dir}/online_api_credentials.yaml).
+                        The file will be automatically created, unless it already exists.
+                      '';
                     };
                   };
                 };
