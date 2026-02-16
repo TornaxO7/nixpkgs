@@ -354,6 +354,12 @@ in
                     description = "Enable or disable the CrowdSec prometheus exporter.";
                   };
 
+                  listen_addr = lib.mkOption {
+                    type = lib.types.str;
+                    default = "127.0.0.1";
+                    description = "Prometheus listen address.";
+                  };
+
                   listen_port = lib.mkOption {
                     type = lib.types.port;
                     default = 6060;
