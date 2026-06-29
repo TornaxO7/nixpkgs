@@ -291,6 +291,22 @@
     t.assertIn("You can successfully interact with Local API (LAPI)", crowdsec.succeed("cscli lapi status"))
     t.assertIsNot("", crowdsec.succeed("cscli bouncers list --output json"))
     t.assertIn("http_default", crowdsec.succeed("cscli notifications list --output raw"))
+
+    # check if runtime state survives a reboot
+    import json
+    bouncers_before = len(json.loads(crowdsec.succeed("cscli bouncers list --output json")))
+    t.assertGreater(bouncers_before, 0)
+    crowdsec.succeed("touch /var/lib/crowdsec/data/.reboot-canary")
+
+    crowdsec.shutdown()
+    crowdsec.start()
+    crowdsec.wait_for_unit("crowdsec.service")
+
+    # Check data_dir has not been emptied by boot-time systemd-tmpfiles --remove
+    crowdsec.succeed("test -e /var/lib/crowdsec/data/.reboot-canary")
+    # ...and the registered bouncers must still be there
+    bouncers_after = len(json.loads(crowdsec.succeed("cscli bouncers list --output json")))
+    t.assertEqual(bouncers_before, bouncers_after, "bouncer registrations lost across a reboot")
   '';
 
   interactive.sshBackdoor.enable = true;
